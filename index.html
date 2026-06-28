@@ -167,6 +167,7 @@
   .mod:hover{transform:translateY(-3px);border-color:var(--line-2);box-shadow:0 16px 34px -22px #000}
   .mod-top{display:flex;align-items:center;gap:9px;margin-bottom:10px}
   .call{font-family:"Space Mono",monospace;font-weight:700;font-size:11px;letter-spacing:.08em;color:var(--ink-soft);border:1.5px solid var(--line);border-radius:6px;padding:2px 7px}
+  .auto-tag{font-family:"Space Mono",monospace;font-size:9px;letter-spacing:.1em;color:var(--guide);border:1px solid var(--guide-dim);border-radius:5px;padding:1px 5px;text-transform:uppercase}
   .stat{margin-left:auto;display:flex;align-items:center;gap:6px;font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-dim)}
   .dot{width:8px;height:8px;border-radius:50%;background:var(--guide);box-shadow:0 0 0 0 var(--guide);animation:pulse 2.4s ease-out infinite}
   .dot.beta{background:var(--amber);animation:none;box-shadow:0 0 8px rgba(240,182,94,.6)}
@@ -297,27 +298,35 @@
 /* =================================================================
    YAMA — the ship's computer / bordbilgisayar
    A small galactic base of Ergün Özsoy's apps. Don't panic.
+
+   MODÜL EKLEME — iki yol:
+   1) KÜRATÖRLÜ (önerilen, üç dilli): aşağıdaki MODULES dizisine bir
+      satır ekle. Tam kontrol: tr/de/en açıklama, çağrı kodu, durum.
+   2) OTOMATİK: GitHub'da repoya "yama" topic'i ver (veya adını
+      "yama-" ile başlat). Sayfa açılınca kendiliğinden gelir.
+      Deck için topic: sprache/musik/finanzen/… · çağrı kodu: cs-xxx
 ==================================================================*/
 const OWNER="ergunozsoy";
+const FLEET_TOPIC="yama";                       // otomatik keşif markası
 const PAGES=s=>`https://${OWNER}.github.io/${s}/`;
 const REPO =s=>`https://github.com/${OWNER}/${s}`;
 
 /* edit here to add / rename / relink modules ----------------------*/
 const MODULES=[
- {slug:"turkologie-guide",       deck:"lang",   call:"TKG", status:"online", web:true,
+ {slug:"YAMA-Turkologie-Guide",  deck:"lang",   call:"TKG", status:"online", web:true,
   desc:{tr:"Türkoloji rehberi", de:"Leitfaden zur Turkologie", en:"A guide to Turcology"}},
- {slug:"turkce-ders-notlari",    deck:"lang",   call:"TDN", status:"online", web:true,
+ {slug:"YAMA-Turkce-Ders-Notlari",deck:"lang",  call:"TDN", status:"online", web:true,
   desc:{tr:"Türkçe ders notları (1–4)", de:"Türkisch-Kursnotizen (1–4)", en:"Turkish course notes (1–4)"}},
- {slug:"yama-daz-sprachvergleich",deck:"lang",  call:"DAZ", status:"online", web:true,
+ {slug:"YAMA-DaZ-Sprachvergleich",deck:"lang",  call:"DAZ", status:"online", web:true,
   desc:{tr:"Almanca–Türkçe dil karşılaştırması (DaZ)", de:"Sprachvergleich Deutsch–Türkisch (DaZ)", en:"German–Turkish contrastive language (DaZ)"}},
  {slug:"YAMA-Deutsch",           deck:"lang",   call:"DEU", status:"online", web:true,
   desc:{tr:"Almanca öğrenme yardımcısı", de:"Deutsch-Lernhelfer", en:"German learning companion"}},
 
  {slug:"YAMA-Violin",            deck:"music",  call:"VLN", status:"online", web:true,
   desc:{tr:"Keman pratiği ve ısınma", de:"Geigen-Übung & Aufwärmen", en:"Violin practice & warm-ups"}},
- {slug:"Yama-nota",              deck:"music",  call:"NOT", status:"online", web:true,
+ {slug:"YAMA-Nota",              deck:"music",  call:"NOT", status:"online", web:true,
   desc:{tr:"Nota okuma & müzik teorisi", de:"Notenlesen & Musiktheorie", en:"Sheet music & theory"}},
- {slug:"dance-practice-hub",     deck:"music",  call:"DNC", status:"online", web:true,
+ {slug:"YAMA-Dance-Practice-Hub",deck:"music",  call:"DNC", status:"online", web:true,
   desc:{tr:"Dans figürleri ve ritim arşivi", de:"Tanzfiguren & Rhythmus-Archiv", en:"Dance steps & rhythm archive"}},
 
  {slug:"YAMA-Invest",           deck:"finance", call:"INV", status:"beta", web:true,
@@ -333,8 +342,12 @@ const MODULES=[
   desc:{tr:"Zaman yolculuğu: tarih & takvim", de:"Zeitreise: Geschichte & Kalender", en:"Time travel: history & calendars"}},
  {slug:"YAMA-Flight-Assistant", deck:"tools",  call:"FLT", status:"online", web:true,
   desc:{tr:"Uçuş & yolculuk yardımcısı", de:"Flug- & Reisehelfer", en:"Flight & travel assistant"}},
- {slug:"yama-lokman",           deck:"tools",  call:"LOK", status:"online", web:true,
+ {slug:"YAMA-Lokman",           deck:"tools",  call:"LOK", status:"online", web:true,
   desc:{tr:"Lokman Hekim'in izinde: sağlık notları", de:"Auf Lokmans Spuren: Gesundheitsnotizen", en:"In Lokman's footsteps: health notes"}},
+ {slug:"YAMA-Baharat",          deck:"tools",  call:"BAH", status:"online", web:true,
+  desc:{tr:"Baharat ve mutfak rehberi", de:"Gewürz- & Küchenführer", en:"A guide to spices & cooking"}},
+ {slug:"YAMA-Family-Atlas",     deck:"tools",  call:"FAM", status:"online", web:true,
+  desc:{tr:"Aile haritası: soyağacı ve bağlantılar", de:"Familienatlas: Stammbaum & Verbindungen", en:"Family atlas: tree & connections"}},
 ];
 
 const DECKS=["lang","music","finance","tools"];
@@ -421,7 +434,18 @@ const T={
 };
 
 let lang="tr", activeDeck="all", query="";
+let EXTRA=[];                                    // GitHub'dan otomatik gelenler
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+
+/* tüm modüller = küratörlü + otomatik keşfedilen */
+function allMods(){return MODULES.concat(EXTRA);}
+
+/* boot satırı, canlı modül sayısıyla */
+function bootText(n){
+  return ({tr:`> tüm sistemler hazır · ${n} modül bağlı`,
+           de:`> alle Systeme bereit · ${n} Module verbunden`,
+           en:`> all systems go · ${n} modules linked`})[lang];
+}
 
 function chrome(){
   const t=T[lang];
@@ -429,7 +453,7 @@ function chrome(){
   $$("[data-i]").forEach(el=>{const k=el.getAttribute("data-i");if(t[k]!=null)el.textContent=t[k];});
   $$("[data-i-ph]").forEach(el=>{const k=el.getAttribute("data-i-ph");if(t[k]!=null)el.placeholder=t[k];});
   $$(".langs button").forEach(b=>b.classList.toggle("on",b.dataset.lang===lang));
-  $("#boot").textContent=t.boot;
+  $("#boot").textContent=bootText(allMods().length);
   $("#towel").title=t.towel;
   // chips
   const chips=$("#chips"); chips.innerHTML="";
@@ -440,15 +464,18 @@ function chrome(){
 
 function card(m){
   const t=T[lang];
-  const live=m.web?`<a class="btn go" href="${PAGES(m.slug)}" target="_blank" rel="noopener">▶ ${t.go}</a>`:"";
+  const target=m.url||PAGES(m.slug);
+  const live=m.web?`<a class="btn go" href="${target}" target="_blank" rel="noopener">▶ ${t.go}</a>`:"";
   const st=m.status==="beta"?t.beta:t.online;
-  return `<article class="mod" data-deck="${m.deck}" data-text="${(m.slug+' '+m.call+' '+m.desc[lang]).toLowerCase()}">
+  const autoTag=m._auto?`<span class="auto-tag" title="GitHub'dan otomatik">auto</span>`:"";
+  return `<article class="mod" data-deck="${m.deck}" data-text="${(m.slug+' '+m.call+' '+(m.desc[lang]||'')).toLowerCase()}">
     <div class="mod-top">
       <span class="call">${m.call}</span>
+      ${autoTag}
       <span class="stat"><span class="dot ${m.status==='beta'?'beta':''}"></span>${st}</span>
     </div>
-    <h3>${m.slug.replace(/-/g,' ')}</h3>
-    <p>${m.desc[lang]}</p>
+    <h3>${m.slug.replace(/^yama[-_]?/i,'').replace(/-/g,' ')}</h3>
+    <p>${m.desc[lang]||""}</p>
     <div class="acts">
       ${live}
       <a class="btn code" href="${REPO(m.slug)}" target="_blank" rel="noopener">&lt;/&gt; ${t.code}</a>
@@ -460,7 +487,7 @@ function renderDecks(){
   const t=T[lang], host=$("#decks"); host.innerHTML="";
   let totalVisible=0;
   DECKS.forEach(d=>{
-    const mods=MODULES.filter(m=>m.deck===d);
+    const mods=allMods().filter(m=>m.deck===d);
     const sec=document.createElement("section"); sec.className="deck"; sec.dataset.deck=d;
     sec.innerHTML=`<div class="deck-head">
         <span class="deck-code">${t.decks[d][0]}</span>
@@ -483,6 +510,59 @@ function renderDecks(){
     totalVisible+=vis;
   });
   $("#empty").classList.toggle("show",totalVisible===0);
+}
+
+/* =================================================================
+   OTOMATİK KEŞİF — yeni repolar gemiye kendiliğinden dokulanır.
+   Küratörlü 14 modül her zaman görünür; bu sadece DİZİDE OLMAYAN,
+   "yama" etiketli (ya da adı "yama-" ile başlayan) repoları ekler.
+   GitHub'a ulaşılamazsa sessizce geçer — sayfa asla boşalmaz.
+==================================================================*/
+function deckFromTopics(topics){
+  const map={
+    lang:   ["sprache","turkologie","turkoloji","daz","deutsch","tuerkisch","linguistik"],
+    music:  ["musik","music","bewegung","tanz","dance","violin","nota","geige"],
+    finance:["finanzen","finance","invest","boerse","geld"]
+  };
+  const forced=topics.find(x=>/^deck-[a-d]$/.test(x));
+  if(forced) return ({a:"lang",b:"music",c:"finance",d:"tools"})[forced.slice(5)];
+  for(const d of ["lang","music","finance"]) if(map[d].some(x=>topics.includes(x))) return d;
+  return "tools";
+}
+function callsignFrom(repo){
+  const cs=(repo.topics||[]).find(x=>x.indexOf("cs-")===0);
+  if(cs) return cs.slice(3).toUpperCase().slice(0,4);
+  const s=repo.name.replace(/^yama[-_]?/i,"").replace(/[^a-z0-9]/gi,"");
+  return (s||repo.name).slice(0,3).toUpperCase();
+}
+function discover(){
+  const have=new Set(MODULES.map(m=>m.slug.toLowerCase()));
+  fetch(`https://api.github.com/users/${OWNER}/repos?per_page=100&sort=updated`,
+        {headers:{Accept:"application/vnd.github+json"}})
+    .then(r=> r.ok ? r.json() : Promise.reject(r.status))
+    .then(all=>{
+      const found=(Array.isArray(all)?all:[]).filter(r=>
+        !r.private && !r.fork &&
+        ((r.topics||[]).includes(FLEET_TOPIC) || /^yama[-_]/i.test(r.name)) &&
+        !have.has(r.name.toLowerCase()));
+      if(!found.length) return;
+      EXTRA=found.map(r=>{
+        const d=r.description||"";
+        const topics=(r.topics||[]).map(x=>x.toLowerCase());
+        return {
+          slug:r.name,
+          deck:deckFromTopics(topics),
+          call:callsignFrom(r),
+          status:r.archived?"beta":"online",
+          web:!!r.has_pages || !!(r.homepage&&r.homepage.trim()),
+          url:(r.homepage&&r.homepage.trim())?r.homepage:(r.has_pages?PAGES(r.name):null),
+          desc:{tr:d,de:d,en:d},
+          _auto:true
+        };
+      });
+      chrome(); renderDecks();
+    })
+    .catch(()=>{/* sessiz: küratörlü modüller zaten görünür */});
 }
 
 /* ---- modal helper ---- */
@@ -519,6 +599,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
 
 chrome();
 renderDecks();
+discover();      // arka planda yeni repoları keşfet ve ekle
 </script>
 </body>
 </html>
